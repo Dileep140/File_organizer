@@ -1,99 +1,70 @@
 import os
 import datetime
 
-def organize_files_by_extension(source_path):
-    """Organizes files in the specified directory based on their file extensions.
+
+def create_log_entry(message, source_directory):
+    """Creates a log entry with the current timestamp, the specified message,
+    and saves it to a log file in the source directory.
 
     Args:
-        source_path (str): The path to the directory containing the files to be organized.
+        message: The message to be logged.
+        source_directory: The path to the directory containing the files to be organized.
     """
-    # List to store unique file extensions
-    unique_extensions = []
+    log_file_path = os.path.join(source_directory, "file_organizer.log")
+    if not os.path.exists(source_directory):  # Ensure the source directory exists
+        os.makedirs(source_directory)
+    with open(log_file_path, "a") as log_file:
+        log_file.write(f"{datetime.datetime.now()}: {message}\n")
 
-    # Scan the specified directory for files
-    items = os.listdir(source_path)
+def create_directories_by_extension(source_directory):
+    """Creates directories based on file extensions in the specified directory.
 
-    for item in items:
-        full_path = os.path.join(source_path, item)
+    Args:
+        source_directory: The path to the directory containing the files to be organized.
+    """
 
-        # Check if the item is a file
+    unique_extensions = set()
+    for item in os.listdir(source_directory):
+        full_path = os.path.join(source_directory, item)
         if os.path.isfile(full_path):
-            # Extract file extension
             file_extension = os.path.splitext(full_path)[1]
+            unique_extensions.add(file_extension)
 
-            # Add unique extensions to the list
-            if file_extension not in unique_extensions:
-                unique_extensions.append(file_extension)
-
-    # Create directories based on unique file extensions
     for extension in unique_extensions:
-        directory_name = extension[1:]  # Remove the dot from the extension
-        dir_path = os.path.join(source_path, directory_name)
-
         try:
-            os.makedirs(dir_path)
-            print(f"Directory '{directory_name}' created.")
+            os.makedirs(os.path.join(source_directory, extension[1:]))
+            create_log_entry(f"Directory created for extension: {extension}", source_directory)
         except FileExistsError:
-            print(f"Directory '{directory_name}' already exists.")
+            create_log_entry(f"Directory for extension '{extension}' already exists.", source_directory)
         except PermissionError:
-            print(f"Permission denied to create directory '{directory_name}'.")
+            create_log_entry(f"Permission denied to create directory for extension '{extension}'.", source_directory)
         except Exception as e:
-            print(f"An error occurred while creating directory '{directory_name}': {str(e)}")
+            create_log_entry(f"Error creating directory for extension '{extension}': {str(e)}", source_directory)
 
-    # Log the activity
-    log_activity(source_path, unique_extensions)
 
-def move_files_to_directories(source_path):
-    """Moves files in the specified directory to directories based on their file extensions.
+def move_files(source_directory):
+    """Moves files to directories based on their extensions, excluding the log file.
 
     Args:
-        source_path (str): The path to the directory containing the files to be moved.
+        source_directory: The path to the directory containing the files to be organized.
     """
-    # List to store moved file names
+
     moved_files = []
-
-    # Scan the specified directory for files
-    file_names = os.listdir(source_path)
-
-    for file_name in file_names:
-        full_path = os.path.join(source_path, file_name)
-
-        # Check if the item is a file
-        if os.path.isfile(full_path):
-            # Extract file extension
+    for item in os.listdir(source_directory):
+        full_path = os.path.join(source_directory, item)
+        if os.path.isfile(full_path) and item != "file_organizer.log":  # Exclude the log file
+            file_name = os.path.basename(full_path)
             file_extension = os.path.splitext(full_path)[1]
-
-            # Create destination path with directory and filename
-            destination = os.path.join(source_path, file_extension[1:], file_name)
-
-            # Move the file
-            os.rename(full_path, destination)
-
-            # Add moved file to the list
+            destination_directory = os.path.join(source_directory, file_extension[1:])
+            destination_path = os.path.join(destination_directory, file_name)
+            os.rename(full_path, destination_path)
             moved_files.append(file_name)
 
-    # Log the activity
-    log_activity(source_path, moved_files, action='move')
+    create_log_entry(f"Files moved: {moved_files}", source_directory)
 
-def log_activity(source_path, items, action='create'):
-    """Logs the activity of creating directories or moving files.
 
-    Args:
-        source_path (str): The path to the directory.
-        items (list): List of items (directories or files) involved in the activity.
-        action (str): The type of activity ('create' or 'move').
-    """
-    log_file_path = os.path.join(source_path, "activity_log.txt")
-
-    with open(log_file_path, "a") as log_file:
-        timestamp = datetime.datetime.now()
-        log_file.write(f"{timestamp} - {action.capitalize()} activity in '{source_path}': {items}\n")
 
 if __name__ == "__main__":
-    target_directory = r"Enter the path of directory"
-
-    # Organize files by extension
-    organize_files_by_extension(target_directory)
-
-    # Move files to directories
-    move_files_to_directories(target_directory)
+    source_path = r"F:\Face Mask detection"
+    create_directories_by_extension(source_path)
+    move_files(source_path)
